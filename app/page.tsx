@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import { cn } from "./lib/utils";
 import React, { useRef, useState } from "react";
-import { SignInButton, useAuth } from "@clerk/nextjs";
+import { PricingTable, SignInButton, useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { FEATURES, PLACEHOLDERS, STEPS, SUGGESTIONS } from "./lib/data";
 import { Button } from "@/components/ui/button";
@@ -13,17 +13,28 @@ import { ArrowRight, Zap } from "lucide-react";
 import { SectionLabel, SectionHeading } from "@/components/Reusable";
 import { ChevronRight } from "lucide-react";
 export default function Home() {
-  const { isSignedIn } = useAuth();
-  const rourter = useRouter();
+  const { isLoaded, isSignedIn } = useAuth();
+  const router = useRouter();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [prompt, setPrompt] = useState("");
   const [placeholerIndex, setPlaceholderIndex] = useState(0);
   const [isfocused, setIsFocused] = useState(false);
 
   const handleSubmit = () => {
-    if (!prompt.trim() && !isSignedIn) {
-      rourter.push("/workspace?prompt=" + encodeURIComponent(prompt.trim()));
+    const trimmedPrompt = prompt.trim();
+
+    if (!isLoaded || !trimmedPrompt) {
+      return;
     }
+
+    const workspaceUrl = "/workspace?prompt=" + encodeURIComponent(trimmedPrompt);
+
+    if (!isSignedIn) {
+      router.push("/sign-in?redirect_url=" + encodeURIComponent(workspaceUrl));
+      return;
+    }
+
+    router.push(workspaceUrl);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -92,30 +103,17 @@ export default function Home() {
                 Press Enter to genrate . Shift for New Line
               </span>
 
-              {isSignedIn ? (
-                <Button
-                  onClick={handleSubmit}
-                  disabled={!prompt.trim()}
-                  variant={prompt.trim() ? "default" : "secondary"}
-                  className={
-                    "h-8 rounded-full bg-white px-5 font-semibold text-black "
-                  }
-                >
-                  Generate
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </Button>
-              ) : (
-                <SignInButton mode="modal">
-                  <Button
-                    className={
-                      "h-8 rounded-full bg-white px-5 font-semibold text-black"
-                    }
-                  >
-                    Generate
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </Button>
-                </SignInButton>
-              )}
+              <Button
+                onClick={handleSubmit}
+                disabled={!isLoaded || !prompt.trim()}
+                variant={prompt.trim() ? "default" : "secondary"}
+                className={
+                  "h-8 rounded-full bg-white px-5 font-semibold text-black "
+                }
+              >
+                Generate
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Button>
             </div>
           </div>
           <div
@@ -326,7 +324,19 @@ export default function Home() {
           </p>
         </div>
 
-        {/* <div className=" mx-auto max-w-3xl">{}</div> */}
+        <div className=" mx-auto max-w-5xl">
+          <PricingTable
+            checkoutProps={{
+              appearance: {
+                elements: {
+                  drawerRoot: {
+                    zIndex: 2000,
+                  },
+                },
+              },
+            }}
+          ></PricingTable>
+        </div>
       </section>
 
       <section className="relative mx-auto mb-32  max-w-5l overflow-hidden rounded-2xl border-white/8 px-10 py-24 text-center">
@@ -352,10 +362,8 @@ export default function Home() {
             className={"relative h-11 rounded-full bg-white px-8"}
           >
             Get Started Free
-              <ChevronRight />
+            <ChevronRight />
           </Button>
-
-        
         </SignInButton>
       </section>
 
@@ -366,3 +374,5 @@ export default function Home() {
   );
 }
 //47.11
+
+

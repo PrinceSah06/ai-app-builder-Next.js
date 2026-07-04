@@ -1,11 +1,18 @@
 import { Show, SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
-import { ArrowRight, Zap } from "lucide-react";
+import { ArrowRight, AwardIcon, Zap } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import React from "react";
 import { Button } from "./ui/button";
+import PricingModal from "./PricingModal";
+import { checkUser } from "@/lib/checkUser";
+import { PLANS } from "@/lib/constants";
+import { Plan } from "@/types/plans";
 
-const Header = () => {
+const Header = async() => {
+  const user = await checkUser();
+
+
   return (
     <header className="w-full fixed left-0 top-0 z-50 h-16 border-b border-white/6 bg-white/7 backdrop:-blur-md">
       <nav className="mx-auto flex h-full max-w-7xl  items-center justify-center px-4 sm:px-6">
@@ -27,14 +34,15 @@ const Header = () => {
             >
               Projects
             </Link>
-
-            <span
-              className="inline-flex h-8 items-center gap-1.5 rounded-full 
+           {user &&  <PricingModal>
+              <span
+                className="inline-flex h-8 items-center gap-1.5 rounded-full 
           border border-white/80 bg-white/5 text-sm text-white/70"
-            >
-              <Zap className=" h-3 w-3 fill-white/70"></Zap> 3 / 40 credits
-            </span>
-
+              >
+                <Zap className=" h-3 w-3 fill-white/70"></Zap>
+                {user.credits} /{PLANS[user?.plan as Plan].credits} credits
+              </span>
+            </PricingModal>}
             <UserButton />
           </Show>
 
@@ -50,7 +58,9 @@ const Header = () => {
             </SignInButton>
             <SignUpButton mode="modal">
               <Button
-                className={"h-8 rounded-full font-semibold active:scale-95 px-4 pt-0.5 "}
+                className={
+                  "h-8 rounded-full font-semibold active:scale-95 px-4 pt-0.5 "
+                }
                 variant={"ghost"}
                 size={"sm"}
               >

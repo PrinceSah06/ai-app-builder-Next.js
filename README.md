@@ -1,5 +1,8 @@
 # 🚀 AI Agent Landing Page
-
+1.28.19
+1.46.12
+1.56.46
+2.06.49
 A modern AI Agent landing page built with **Next.js 16**, **TypeScript**, **Tailwind CSS**, **shadcn/ui**, and **Clerk Authentication**.
 
 > **Note:** This project was built by following a LinkedIn tutorial for learning purposes. It helped me understand modern Next.js development, authentication with Clerk, reusable UI components, and responsive design.
