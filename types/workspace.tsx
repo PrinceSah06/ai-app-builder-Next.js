@@ -1,5 +1,3 @@
-import { label } from "motion/react-client";
-
 export type MessageRole = "user" | "assistant"
 
 export interface Message{
@@ -26,7 +24,7 @@ export interface StatuStep{
 export interface WorkspaceData{
     id:string;
     title:string|null;
-    message:unknown;
+    messages:unknown;
     fileData:unknown;
 }
 

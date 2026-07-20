@@ -1,4 +1,5 @@
 
+import { getWorkspaceById, getWorkspaceUser } from '@/actions/workspace';
 import WorkspaceClinet from '@/components/workspaceClinet';
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
@@ -10,13 +11,22 @@ interface WorkspacePageProps{
 
 const page =  async({searchParams}:WorkspacePageProps) => {
  
+
+  const user = await getWorkspaceUser()
  const {userId} = await auth();
  if(!userId) redirect('/')
  
   const {prompt,id }= await searchParams;
+  let workspace = null;
+
+  if(id){
+    workspace = await getWorkspaceById(id,user.id)
+  }
 
 
 
+
+//2.48.
 
 
 
@@ -24,9 +34,11 @@ const page =  async({searchParams}:WorkspacePageProps) => {
     <div>
       <WorkspaceClinet
       initialPrompt={prompt ?? null}
-      userCredits={10}
-      userId={userId}
-      userPlan={"free"}/>
+      userCredits={user.credits}
+      userId={user.id}
+      userPlan={user.plan}
+      workspace={workspace}
+      />
     </div>
   )
 }

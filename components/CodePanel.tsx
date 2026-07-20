@@ -1,9 +1,7 @@
 "use client";
 
 import { FileData, StatuStep } from "@/types/workspace";
-import { Sandpack } from "@codesandbox/sandpack-react";
-import { object } from "motion/react-client";
-import React, { act, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 import {
   SandpackProvider,
@@ -14,9 +12,9 @@ import {
   useSandpack,
 } from "@codesandbox/sandpack-react";
 import { dracula } from "@codesandbox/sandpack-themes";
-import { isGenerator } from "motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Code2, Eye } from "lucide-react";
+import { RingLoader } from "react-spinners";
 
 const PLACEHOLDER_FILES = {
   "/App.js": {
@@ -68,13 +66,17 @@ function SandpackInner({
   isGenerating,
   activeTab,
   setActiveTab,
+  isImproving,
+  statusLog,
 }: {
   fileData: FileData | null;
   isGenerating: boolean;
   activeTab: ActiveTab;
   setActiveTab: (t: ActiveTab) => void;
+  isImproving: boolean;
+  statusLog: StatuStep[];
 }) {
-  const { sandpack, listen } = useSandpack();
+  const { sandpack } = useSandpack();
 
   const prevFilesRef = useRef<Record<string, { code: string }>>({});
 
@@ -90,7 +92,7 @@ function SandpackInner({
     }
 
     prevFilesRef.current = fileData.files;
-  }, [fileData?.files]);
+  }, [fileData?.files, sandpack]);
 
   return (
     <Tabs
@@ -98,26 +100,48 @@ function SandpackInner({
       onValueChange={(v) => setActiveTab(v as ActiveTab)}
       className={"flex h-full flex-col gap-0"}
     >
-      <div className="flex item-center justfy-between border-b border-white/6 px-2">
+      <div className="flex items-center justify-between border-b border-white/6 px-2">
         <TabsList
           variant={"line"}
           className={`h-auto gap-0 rounded-none bg-transparent p-0`}
         >
           <TabsTrigger className={`border-b-2 pt-2 `} value={"code"}>
-            <Code2 className="h-3.5 sw-3.5" />
+            <Code2 className="h-3.5 w-3.5" />
             Code{" "}
           </TabsTrigger>
           <TabsTrigger className={`border-b-2 pt-2 `} value={"preview"}>
-            <Eye className="h-3.5 sw-3.5" />
+            <Eye className="h-3.5 w-3.5" />
             Preview{" "}
           </TabsTrigger>
         </TabsList>
       </div>
 
       <div className="relative flex-1 overflow-hidden">
+
+      {
+        (isGenerating || isImproving) && (<div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-6 bg-[#0a0a0a]/85 backdrop-blur-sm">
+
+
+          <RingLoader color="#60a5fa" size={64 } speedMultiplier={0.8}/>
+
+          <div className=" flex flex-col  items-center gap-1.5">
+            <p className=" text-sm font-medium text-white/60">
+              {isImproving  ? "Improving with Cline AI..." :
+              (statusLog[statusLog.length-1]?.label ?? "Generating...")}
+            </p>
+            <p
+            className="text-xs text-white/70">
+              This is usally takes 10-20 seconds
+            </p>
+          </div>
+
+
+
+        </div>)
+      }
         <SandpackLayout
           style={{
-            height: "100vh",
+            height: "100%",
             border: "none",
             borderRadius: 0,
             background: "transparent",
@@ -126,22 +150,22 @@ function SandpackInner({
           <TabsContent value={"preview"}
           keepMounted
           className={'mt-0 h-full w-full'}>
-         
-         <SandpackPreview style={{height:"89%"}}
+
+         <SandpackPreview style={{height:"100%"}}
          showOpenInCodeSandbox={false}/>
           </TabsContent>
-          <TabsContent 
+          <TabsContent
          value={"code"}
           keepMounted
           className={'mt-0 h-full w-full'}>
 
 <SandpackFileExplorer style={{
-    height:"90%",
+    height:"100%",
     width:"180px",
     borderRight:"0.5px solid rgba(255,255,255,0.08)"
 }}/>
 <SandpackCodeEditor
-style={{height:"90%" ,flex:1}}
+style={{height:"100%" ,flex:1}}
 showTabs
 showInlineErrors
 showLineNumbers
@@ -149,7 +173,6 @@ closableTabs
 readOnly/>
 
 
-            Change your password here.
           </TabsContent>
         </SandpackLayout>
       </div>
@@ -168,7 +191,6 @@ const CodePanel = ({
   fileData,
   inGenerating,
   statusLog,
-  onFilePatch: _OnfilePatch,
 }: CodePanelProps) => {
   const [activeTab, setActiveTab] = useState<ActiveTab>("preview");
 
@@ -179,12 +201,12 @@ const CodePanel = ({
     ...(fileData?.dependencies ?? {}),
   };
 
-  const filepatkey = Object.keys(files).sort().join("|");
+  const filePathKey = Object.keys(files).sort().join("|");
 
   return (
     <div className="flex flex-1 overflow-hidden">
       <SandpackProvider
-        key={filepatkey}
+        key={filePathKey}
         template="react"
         theme={dracula}
         files={files}
@@ -198,6 +220,8 @@ const CodePanel = ({
         <SandpackInner
           fileData={fileData}
           isGenerating={inGenerating}
+          isImproving={false}
+          statusLog={statusLog}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
         />

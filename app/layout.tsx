@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import Header from "@/components/Header";
 
 import { ClerkProvider, Show, SignInButton, SignUpButton, UserButton } from '@clerk/nextjs'
+import { Toaster } from "sonner";
 const lora = Lora({
   subsets: ["latin"],
   weight: ["400", "500"],
@@ -38,6 +39,7 @@ export default function RootLayout({
       className={cn(
        
       )}
+      suppressHydrationWarning
       suppressContentEditableWarning
     >
       <body className={`${lora.variable} ${dmSans.variable} font-sans`}>
@@ -52,6 +54,7 @@ export default function RootLayout({
 
             <main>  {children}</main>
           
+          <Toaster richColors/>
           </ThemeProvider></body>
     </html></ClerkProvider>
   );
