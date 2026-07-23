@@ -13,8 +13,9 @@ import {
 } from "@codesandbox/sandpack-react";
 import { dracula } from "@codesandbox/sandpack-themes";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { Code2, Eye } from "lucide-react";
+import { AlertTriangle, Code2, Eye, Wand2 } from "lucide-react";
 import { RingLoader } from "react-spinners";
+import { Button } from "./ui/button";
 
 const PLACEHOLDER_FILES = {
   "/App.js": {
@@ -61,6 +62,7 @@ const BASE_DEPENDENCIES: Record<string, string> = {
 };
 
 type ActiveTab = "preview" | "code";
+
 function SandpackInner({
   fileData,
   isGenerating,
@@ -68,6 +70,7 @@ function SandpackInner({
   setActiveTab,
   isImproving,
   statusLog,
+  onFixError
 }: {
   fileData: FileData | null;
   isGenerating: boolean;
@@ -75,10 +78,75 @@ function SandpackInner({
   setActiveTab: (t: ActiveTab) => void;
   isImproving: boolean;
   statusLog: StatuStep[];
+  onFixError:(error:string)=> Promise<void>
 }) {
-  const { sandpack } = useSandpack();
+  const { sandpack,listen } = useSandpack();
+  const [ previewError,setPreviewError] = useState<string | null>(null)
+  const unsubscribeRef = useRef<()=>void | null >(null)
 
   const prevFilesRef = useRef<Record<string, { code: string }>>({});
+
+
+
+  useEffect(()=>{
+    unsubscribeRef.current = listen((msg)=>{
+
+      if(
+        msg.type === "action" &&
+        "action" in msg &&
+        msg.action === "show-error"
+      ){
+        const errMsg =
+        "message" in msg && typeof msg.message === "string" ?
+        msg.message:
+        "An Error occurred in the preview.";
+        setPreviewError(errMsg);
+        return;
+      }
+    
+
+
+
+    // complie error
+
+    if(msg.type === "compile" && "error" in msg){
+      const errMsg = 
+      "message" in msg && typeof msg.message === "string"
+      ?msg.message :
+      "Complile error in preview";
+
+      setPreviewError(errMsg)
+      return
+    }
+
+
+// sucess -clear the error
+
+if(msg.type === "success"){
+  setPreviewError(null)
+}
+
+
+
+
+
+
+  })
+
+
+  return ()=> unsubscribeRef.current?.()
+
+  },[listen])
+
+  useEffect(()=>{
+
+  if(isGenerating) setPreviewError(null)
+
+  },[isGenerating])
+
+  useEffect(() => {
+    if (fileData) setActiveTab("preview");
+  }, [fileData]);
 
   useEffect(() => {
     if (!fileData?.files) return;
@@ -100,7 +168,7 @@ function SandpackInner({
       onValueChange={(v) => setActiveTab(v as ActiveTab)}
       className={"flex h-full flex-col gap-0"}
     >
-      <div className="flex items-center justify-between border-b border-white/6 px-2">
+      <div className=" relative flex items-center justify-between border-b border-white/6 px-2">
         <TabsList
           variant={"line"}
           className={`h-auto gap-0 rounded-none bg-transparent p-0`}
@@ -117,28 +185,22 @@ function SandpackInner({
       </div>
 
       <div className="relative flex-1 overflow-hidden">
+        {(isGenerating || isImproving) && (
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-6 bg-[#0a0a0a]/85 backdrop-blur-sm">
+            <RingLoader color="#60a5fa" size={64} speedMultiplier={0.8} />
 
-      {
-        (isGenerating || isImproving) && (<div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-6 bg-[#0a0a0a]/85 backdrop-blur-sm">
-
-
-          <RingLoader color="#60a5fa" size={64 } speedMultiplier={0.8}/>
-
-          <div className=" flex flex-col  items-center gap-1.5">
-            <p className=" text-sm font-medium text-white/60">
-              {isImproving  ? "Improving with Cline AI..." :
-              (statusLog[statusLog.length-1]?.label ?? "Generating...")}
-            </p>
-            <p
-            className="text-xs text-white/70">
-              This is usally takes 10-20 seconds
-            </p>
+            <div className=" flex flex-col  items-center gap-1.5">
+              <p className=" text-sm font-medium text-white/60">
+                {isImproving
+                  ? "Improving with Cline AI..."
+                  : (statusLog[statusLog.length - 1]?.label ?? "Generating...")}
+              </p>
+              <p className="text-xs text-white/70">
+                This is usally takes 10-20 seconds
+              </p>
+            </div>
           </div>
-
-
-
-        </div>)
-      }
+        )}
         <SandpackLayout
           style={{
             height: "100%",
@@ -147,35 +209,67 @@ function SandpackInner({
             background: "transparent",
           }}
         >
-          <TabsContent value={"preview"}
-          keepMounted
-          className={'mt-0 h-full w-full'}>
-
-         <SandpackPreview style={{height:"100%"}}
-         showOpenInCodeSandbox={false}/>
+          <TabsContent
+            value={"preview"}
+            keepMounted
+            className={"mt-0 h-full w-full"}
+          >
+            <SandpackPreview
+              style={{ height: "100%" }}
+              showOpenInCodeSandbox={false}
+            />
           </TabsContent>
           <TabsContent
-         value={"code"}
-          keepMounted
-          className={'mt-0 h-full w-full'}>
-
-<SandpackFileExplorer style={{
-    height:"100%",
-    width:"180px",
-    borderRight:"0.5px solid rgba(255,255,255,0.08)"
-}}/>
-<SandpackCodeEditor
-style={{height:"100%" ,flex:1}}
-showTabs
-showInlineErrors
-showLineNumbers
-closableTabs
-readOnly/>
-
-
+            value={"code"}
+            keepMounted
+            className={"mt-0 h-full w-full"}
+          >
+            <SandpackFileExplorer
+              style={{
+                height: "100%",
+                width: "180px",
+                borderRight: "0.5px solid rgba(255,255,255,0.08)",
+              }}
+            />
+            <SandpackCodeEditor
+              style={{ height: "100%", flex: 1 }}
+              showTabs
+              showInlineErrors
+              showLineNumbers
+              closableTabs
+              readOnly
+            />
           </TabsContent>
         </SandpackLayout>
+
       </div>
+      { previewError &&
+!isGenerating&&
+!isImproving&&
+activeTab ==='preview' &&(
+ <div className="absolute inset-x-0  -bottom-3 z-20 border-t border-red-500/20 bg-red-950/99 p-4 pb-6">
+
+        <div className="flex items-center gap-2.5">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shri-0 text-red-400/70" />
+          <div className="min-w-400">
+            <p className="text-sx font-medium text-red-400/80 ">
+              Preview error
+            </p>
+            <p className="break-all text-[11px] text-red-300/50 ">
+              {previewError}
+            </p>
+          </div>
+          <Button
+          onClick={() => previewError && onFixError(previewError)}
+          variant={"destructive"
+
+          }
+          size={"sm"}>
+
+            <Wand2 className="h-3 w-3 "/>
+          </Button>
+        </div>
+        </div>)}
     </Tabs>
   );
 }
@@ -185,13 +279,11 @@ interface CodePanelProps {
   inGenerating: boolean;
   statusLog: StatuStep[];
   onFilePatch: (patches: FileData) => void;
+  onFixError:(error:string) => Promise<void>
+  isImproving:boolean
 }
 
-const CodePanel = ({
-  fileData,
-  inGenerating,
-  statusLog,
-}: CodePanelProps) => {
+const CodePanel = ({ fileData, inGenerating, statusLog, onFixError, isImproving }: CodePanelProps) => {
   const [activeTab, setActiveTab] = useState<ActiveTab>("preview");
 
   const files = fileData?.files ?? PLACEHOLDER_FILES;
@@ -220,10 +312,11 @@ const CodePanel = ({
         <SandpackInner
           fileData={fileData}
           isGenerating={inGenerating}
-          isImproving={false}
+          isImproving={isImproving}
           statusLog={statusLog}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
+          onFixError={onFixError}
         />
       </SandpackProvider>
     </div>

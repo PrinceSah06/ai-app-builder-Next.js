@@ -249,8 +249,10 @@ onStop={handleStop}
       <CodePanel
         fileData={fileData}
         inGenerating={isGenerating}
+        isImproving={false}
         statusLog={statusLog}
         onFilePatch={handleFilePatch}
+        onFixError={(error)=> handleGenerate('There is an error in th e preview:'+`\n\n\'\'\'n${error}\n'\'\'\'\n\n Please fix it`)}
       />
     </div>
   );
